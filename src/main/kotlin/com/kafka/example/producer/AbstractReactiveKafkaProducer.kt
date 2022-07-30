@@ -2,19 +2,17 @@ package com.kafka.example.producer
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomSerializer
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate
 import reactor.core.Disposable
 import reactor.kafka.sender.SenderOptions
 import reactor.kafka.sender.SenderResult
 
-abstract class ReactiveKafkaProducer<T : Any>: InitializingBean, DisposableBean {
+abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, DisposableBean {
 
     @Value("\${spring.kafka.bootstrap-servers}")
     lateinit var bootstrapServers: String

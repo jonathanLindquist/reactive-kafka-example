@@ -11,7 +11,7 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
 import reactor.core.Disposable
 import reactor.kafka.receiver.ReceiverOptions
 
-abstract class ReactiveKafkaConsumer<T>(
+abstract class AbstractReactiveKafkaConsumer<T>(
     private val clazz: Class<T>
 ): InitializingBean, DisposableBean {
 
