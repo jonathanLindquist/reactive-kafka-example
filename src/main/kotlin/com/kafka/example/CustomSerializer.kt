@@ -11,12 +11,4 @@ class CustomSerializer<T>(
     override fun serialize(topic: String?, data: T): ByteArray {
         return objectMapper.writeValueAsBytes(data)
     }
-//    override fun deserialize(topic: String?, data: ByteArray?): T {
-//        return try {
-//            objectMapper.readValue(data, clazz)
-//        } catch (e: Exception) {
-//            println("mapping error: ${e.message}")
-//            throw e
-//        }
-//    }
 }
