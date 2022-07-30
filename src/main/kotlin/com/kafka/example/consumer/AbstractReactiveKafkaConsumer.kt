@@ -16,15 +16,13 @@ abstract class AbstractReactiveKafkaConsumer<T>(
 ): InitializingBean, DisposableBean {
 
     @Value("\${spring.kafka.bootstrap-servers}")
-    lateinit var bootstrapServers: String
+    private lateinit var bootstrapServers: String
 
     @Value("\${spring.kafka.consumer.group-id}")
-    lateinit var groupId: String
+    private lateinit var groupId: String
 
     @Value("\${spring.kafka.consumer.auto-offset-reset}")
-    lateinit var autoOffsetReset: String
-
-    abstract val topics: List<String>
+    private lateinit var autoOffsetReset: String
 
     private lateinit var receiver: ReactiveKafkaConsumerTemplate<String, T>
 
@@ -41,8 +39,10 @@ abstract class AbstractReactiveKafkaConsumer<T>(
     }
 
     override fun destroy() {
-        TODO("Not yet implemented")
+        disposable.dispose()
     }
+
+    abstract val topics: List<String>
 
     open fun kafkaConsumerProperties(): MutableMap<String, Any> =
         mutableMapOf(

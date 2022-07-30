@@ -11,16 +11,15 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate
 import reactor.core.Disposable
 import reactor.kafka.sender.SenderOptions
 import reactor.kafka.sender.SenderResult
+import java.util.*
 
 abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, DisposableBean {
 
     @Value("\${spring.kafka.bootstrap-servers}")
-    lateinit var bootstrapServers: String
+    private lateinit var bootstrapServers: String
 
     @Value("\${spring.kafka.producer.client-id}")
-    lateinit var clientId: String
-
-    abstract val topic: String
+    private lateinit var clientId: String
 
     private lateinit var producer: ReactiveKafkaProducerTemplate<String, T>
 
@@ -35,6 +34,10 @@ abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, Disposa
     override fun destroy() {
         producer.close()
     }
+
+    abstract val topic: String
+
+    open fun generateKey() = "${this::class.simpleName}-${UUID.randomUUID()}"
 
     open fun kafkaProducerProperties(): MutableMap<String, Any> =
         mutableMapOf(
@@ -51,7 +54,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, Disposa
     }
 
     open fun send(dto: T): Disposable =
-        producer.send(topic, "1234", dto)
+        producer.send(topic, generateKey(), dto)
             .doOnNext { senderResult -> successHandler(senderResult) }
             .doOnError { throwable -> errorHandler(throwable) }
             .subscribe()
