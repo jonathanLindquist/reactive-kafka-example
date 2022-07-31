@@ -2,6 +2,9 @@ package com.kafka.example.producer
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomSerializer
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.DisposableBean
@@ -11,9 +14,12 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate
 import reactor.core.Disposable
 import reactor.kafka.sender.SenderOptions
 import reactor.kafka.sender.SenderResult
-import java.util.*
+import java.util.UUID
+import java.util.logging.Logger
 
-abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, DisposableBean {
+abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, DisposableBean {
+
+    private val logger = Logger.getLogger(this::class.simpleName)
 
     @Value("\${spring.kafka.bootstrap-servers}")
     private lateinit var bootstrapServers: String
@@ -45,17 +51,21 @@ abstract class AbstractReactiveKafkaProducer<T : Any>: InitializingBean, Disposa
             Pair(ProducerConfig.CLIENT_ID_CONFIG, clientId),
         )
 
-    open fun successHandler(senderResult: SenderResult<Void>) {
-        println("Sent item")
+    open suspend fun successHandler(senderResult: SenderResult<Void>) {
+        logger.info("Sent item")
     }
 
-    open fun errorHandler(throwable: Throwable) {
-        println("Error sending item: ${throwable.message}")
+    open suspend fun errorHandler(throwable: Throwable) {
+        logger.severe("Error sending item: ${throwable.message}")
     }
 
-    open fun send(dto: T): Disposable =
-        producer.send(topic, generateKey(), dto)
-            .doOnNext { senderResult -> successHandler(senderResult) }
-            .doOnError { throwable -> errorHandler(throwable) }
+    @OptIn(DelicateCoroutinesApi::class)
+    open suspend fun send(dto: T): Disposable {
+        logger.info("Sending message: ${dto::class.simpleName}")
+        return producer
+            .send(topic, generateKey(), dto)
+            .doOnNext { senderResult -> GlobalScope.launch { successHandler(senderResult) } }
+            .doOnError { throwable -> GlobalScope.launch { errorHandler(throwable) } }
             .subscribe()
+    }
 }

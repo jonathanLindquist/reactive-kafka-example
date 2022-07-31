@@ -2,7 +2,12 @@ package com.kafka.example
 
 import com.kafka.example.config.KafkaConsumerConfig
 import com.kafka.example.config.KafkaProducerConfig
+import com.kafka.example.dto.BaseDTO
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ContextConfiguration
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -15,8 +20,24 @@ import org.testcontainers.junit.jupiter.Testcontainers
 )
 class ExampleApplicationTests {
 
-	@Test
-	fun contextLoads() {
-	}
+	@Autowired
+	lateinit var baseDTOConsumer: KafkaConsumerConfig.BaseDTOConsumer
 
+	@Autowired
+	lateinit var baseDTOProducer: KafkaProducerConfig.BaseDTOProducer
+
+	@Test
+	fun `producer sends & receiver consumes`(): Unit = runBlocking {
+		val baseDto = BaseDTO(
+			item = "thing",
+			amount = 3
+		)
+
+		val sendRequest = launch {
+			baseDTOProducer.send(baseDto)
+			delay(5000)
+		}
+
+		sendRequest.join()
+	}
 }

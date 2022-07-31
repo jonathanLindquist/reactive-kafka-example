@@ -25,9 +25,11 @@ class KafkaProducerConfig {
 
         override fun generateKey() = "overridden-key-${this::class.simpleName}-${UUID.randomUUID()}"
 
-        override fun successHandler(senderResult: SenderResult<Void>) = logger.info("overridden success handler: ${this::class.simpleName}")
+        override suspend fun successHandler(senderResult: SenderResult<Void>) =
+            logger.info("overridden success handler: ${this::class.simpleName}")
 
-        override fun errorHandler(throwable: Throwable) = logger.info("overridden error handler, error: ${throwable.message}")
+        override suspend fun errorHandler(throwable: Throwable) =
+            logger.info("overridden error handler, error: ${throwable.message}")
     }
 
     @Bean

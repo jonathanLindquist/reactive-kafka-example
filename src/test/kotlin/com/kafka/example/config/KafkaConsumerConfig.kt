@@ -23,7 +23,7 @@ class KafkaConsumerConfig {
                 Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
             )
 
-        override fun <T : Any> accept(dto: T) = logger.info("overridden accept method: ${this::class.simpleName}")
+        override suspend fun <T : Any> accept(dto: T) = logger.info("overridden accept method: ${this::class.simpleName}")
     }
 
     @Bean
