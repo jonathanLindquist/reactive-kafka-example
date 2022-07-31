@@ -2,7 +2,6 @@ package com.kafka.example
 
 import com.kafka.example.config.KafkaConsumerConfig
 import com.kafka.example.config.KafkaProducerConfig
-import com.kafka.example.config.KafkaServerTestProvider
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ContextConfiguration

@@ -1,9 +1,8 @@
 package com.kafka.example.config
 
-import com.kafka.example.consumer.AbstractReactiveKafkaConsumer
+import com.kafka.example.KafkaServerTestProvider
 import com.kafka.example.dto.BaseDTO
 import com.kafka.example.producer.AbstractReactiveKafkaProducer
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

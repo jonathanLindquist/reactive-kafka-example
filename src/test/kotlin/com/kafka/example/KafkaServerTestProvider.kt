@@ -1,4 +1,4 @@
-package com.kafka.example.config
+package com.kafka.example
 
 import org.springframework.boot.test.util.TestPropertyValues
 import org.springframework.context.ApplicationContextInitializer

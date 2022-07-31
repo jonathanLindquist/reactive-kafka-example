@@ -1,5 +1,6 @@
 package com.kafka.example.config
 
+import com.kafka.example.KafkaServerTestProvider
 import com.kafka.example.consumer.AbstractReactiveKafkaConsumer
 import com.kafka.example.dto.BaseDTO
 import org.apache.kafka.clients.consumer.ConsumerConfig
