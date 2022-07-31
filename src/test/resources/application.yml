@@ -1,0 +1,11 @@
+spring:
+  profiles:
+    active:
+      - test
+  kafka:
+    bootstrap-servers: localhost:1234
+    consumer:
+      auto-offset-reset: earliest
+      group-id: "group-id-example-consumer"
+    producer:
+      client-id: "group-id-example-producer"

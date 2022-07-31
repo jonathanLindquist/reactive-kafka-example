@@ -11,7 +11,7 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
 import reactor.core.Disposable
 import reactor.kafka.receiver.ReceiverOptions
 
-abstract class AbstractReactiveKafkaConsumer<T>(
+abstract class AbstractReactiveKafkaConsumer<T : Any>(
     private val clazz: Class<T>
 ): InitializingBean, DisposableBean {
 
@@ -29,7 +29,7 @@ abstract class AbstractReactiveKafkaConsumer<T>(
     private lateinit var disposable: Disposable
 
     override fun afterPropertiesSet() {
-        receiver = ReactiveKafkaConsumerTemplate<String, T>(
+        receiver = ReactiveKafkaConsumerTemplate(
             ReceiverOptions.create<String?, T>(kafkaConsumerProperties())
                 .withKeyDeserializer(StringDeserializer())
                 .withValueDeserializer(CustomDeserializer(jacksonObjectMapper(), clazz))
@@ -51,8 +51,8 @@ abstract class AbstractReactiveKafkaConsumer<T>(
             Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
         )
 
-    open fun <T> accept(dto: T) =
-        println("Found item: ${dto!!::class.simpleName}")
+    open fun <T : Any> accept(dto: T) =
+        println("Found item: ${dto::class.simpleName}")
 
     private fun <T> consume(): Disposable =
         receiver
