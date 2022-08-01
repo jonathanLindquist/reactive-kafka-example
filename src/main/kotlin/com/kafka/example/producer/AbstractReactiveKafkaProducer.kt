@@ -2,8 +2,7 @@ package com.kafka.example.producer
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomSerializer
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -59,13 +58,12 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         logger.severe("Error sending item: ${throwable.message}")
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    open suspend fun send(dto: T): Disposable {
+    open suspend fun send(dto: T): Disposable = coroutineScope {
         logger.info("Sending message: ${dto::class.simpleName}")
-        return producer
+        return@coroutineScope producer
             .send(topic, generateKey(), dto)
-            .doOnNext { senderResult -> GlobalScope.launch { successHandler(senderResult) } }
-            .doOnError { throwable -> GlobalScope.launch { errorHandler(throwable) } }
+            .doOnNext { senderResult -> launch { successHandler(senderResult) } }
+            .doOnError { throwable -> launch { errorHandler(throwable) } }
             .subscribe()
     }
 }

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomDeserializer
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -11,7 +13,6 @@ import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
-import reactor.core.Disposable
 import reactor.kafka.receiver.ReceiverOptions
 import java.util.logging.Logger
 
@@ -32,7 +33,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
 
     lateinit var receiver: ReactiveKafkaConsumerTemplate<String, T>
 
-    lateinit var disposable: Disposable
+    lateinit var disposable: Job
 
     override fun afterPropertiesSet() {
         receiver = ReactiveKafkaConsumerTemplate(
@@ -45,7 +46,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
     }
 
     override fun destroy() {
-        disposable.dispose()
+        disposable.cancel()
     }
 
     abstract val topics: List<String>
@@ -64,7 +65,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
         logger.severe("Error: ${throwable.message}")
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun <T> consume(): Disposable =
+    private fun <T> consume(): Job = GlobalScope.launch {
         receiver
             .receiveAutoAck()
             .doOnNext { received ->
@@ -75,6 +76,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                         |offset=${received.offset()}""".trimMargin()
                 )
             }
-            .doOnError { throwable -> GlobalScope.launch { errorHandler(throwable) } }
-            .subscribe { response -> GlobalScope.launch { accept(response) } }
+            .doOnError { throwable -> async { errorHandler(throwable) } }
+            .subscribe { response -> async { accept(response) } }
+    }
 }

@@ -21,9 +21,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 class ExampleApplicationTests {
 
 	@Autowired
-	lateinit var baseDTOConsumer: KafkaConsumerConfig.BaseDTOConsumer
-
-	@Autowired
 	lateinit var baseDTOProducer: KafkaProducerConfig.BaseDTOProducer
 
 	@Test
@@ -35,8 +32,11 @@ class ExampleApplicationTests {
 
 		val sendRequest = launch {
 			baseDTOProducer.send(baseDto)
-			delay(5000)
 		}
+
+		launch {
+			delay(5000)
+		}.join()
 
 		sendRequest.join()
 	}
