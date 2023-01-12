@@ -3,6 +3,8 @@ package com.kafka.example
 import com.kafka.example.config.KafkaConsumerConfig
 import com.kafka.example.config.KafkaProducerConfig
 import com.kafka.example.dto.BaseDTO
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -30,14 +32,12 @@ class ExampleApplicationTests {
 			amount = 3
 		)
 
-		val sendRequest = launch {
+		CoroutineScope(Dispatchers.IO).launch {
 			baseDTOProducer.send(baseDto)
 		}
 
 		launch {
 			delay(5000)
 		}.join()
-
-		sendRequest.join()
 	}
 }
