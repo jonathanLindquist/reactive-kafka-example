@@ -75,13 +75,13 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
             .doOnNext { received ->
                 logger.info(
                     """
-                        |${this@AbstractReactiveKafkaConsumer::class.simpleName} received: 
+                        |${this@AbstractReactiveKafkaConsumer::class.simpleName} received:
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
                 )
             }
-            .doOnError { throwable -> launch { errorHandler(throwable) } }
-            .subscribe { response -> launch { accept(response) } }
+            .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
+            .subscribe{ response -> CoroutineScope(dispatcher).launch { accept(response) } }
     }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->

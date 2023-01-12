@@ -19,7 +19,7 @@ class KafkaConsumerConfig {
         override fun kafkaConsumerProperties(): MutableMap<String, Any> =
             mutableMapOf(
                 Pair(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServerTestProvider.KAFKA_CONTAINER.bootstrapServers),
-                Pair(ConsumerConfig.GROUP_ID_CONFIG, "overridden-group-id-${UUID.randomUUID()}"),
+                Pair(ConsumerConfig.GROUP_ID_CONFIG, "group-id-${UUID.randomUUID()}"),
                 Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
             )
 

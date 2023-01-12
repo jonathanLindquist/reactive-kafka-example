@@ -20,10 +20,10 @@ class KafkaProducerConfig {
         override fun kafkaProducerProperties(): MutableMap<String, Any> =
             mutableMapOf(
                 Pair(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServerTestProvider.KAFKA_CONTAINER.bootstrapServers),
-                Pair(ProducerConfig.CLIENT_ID_CONFIG, "overridden-client-id-${UUID.randomUUID()}")
+                Pair(ProducerConfig.CLIENT_ID_CONFIG, "client-id-${UUID.randomUUID()}")
             )
 
-        override fun generateKey() = "overridden-key-${this::class.simpleName}-${UUID.randomUUID()}"
+        override fun generateKey() = "generated-key-${this::class.simpleName}-${UUID.randomUUID()}"
 
         override suspend fun successHandler(senderResult: SenderResult<Void>) =
             logger.info("overridden success handler: ${this::class.simpleName}")

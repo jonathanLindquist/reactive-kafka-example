@@ -69,8 +69,8 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         logger.info("Sending message: ${dto::class.simpleName}")
         return producer
             .send(topic, generateKey(), dto)
-            .doOnNext { senderResult -> launch { successHandler(senderResult) } }
-            .doOnError { throwable -> launch { errorHandler(throwable) } }
+            .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
+            .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
             .subscribe()
     }
 
