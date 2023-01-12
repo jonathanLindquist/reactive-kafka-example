@@ -23,7 +23,7 @@ class KafkaProducerConfig {
                 Pair(ProducerConfig.CLIENT_ID_CONFIG, "client-id-${UUID.randomUUID()}")
             )
 
-        override fun generateKey() = "generated-key-${this::class.simpleName}-${UUID.randomUUID()}"
+        override fun classKey() = "generated-key-${this::class.simpleName}-${this.uuid}"
 
         override suspend fun successHandler(senderResult: SenderResult<Void>) =
             logger.info("overridden success handler: ${this::class.simpleName}")

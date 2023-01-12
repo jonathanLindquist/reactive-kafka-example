@@ -35,6 +35,8 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
 
     private lateinit var producer: ReactiveKafkaProducerTemplate<String, T>
 
+    protected val uuid: UUID = UUID.randomUUID()
+
     override fun afterPropertiesSet() {
         producer = ReactiveKafkaProducerTemplate(
             SenderOptions.create<String?, T>(kafkaProducerProperties())
@@ -49,7 +51,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
 
     abstract val topic: String
 
-    open fun generateKey() = "${this::class.simpleName}-${UUID.randomUUID()}"
+    open fun classKey() = "${this::class.simpleName}-${uuid}"
 
     open fun kafkaProducerProperties(): MutableMap<String, Any> =
         mutableMapOf(
@@ -68,7 +70,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
     open suspend fun send(dto: T): Disposable = CoroutineScope(dispatcher).run {
         logger.info("Sending message: ${dto::class.simpleName}")
         return producer
-            .send(topic, generateKey(), dto)
+            .send(topic, classKey(), dto)
             .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
             .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
             .subscribe()
