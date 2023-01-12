@@ -6,7 +6,9 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.DisposableBean
@@ -14,11 +16,16 @@ import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
 import reactor.kafka.receiver.ReceiverOptions
+import java.util.concurrent.Executors
 import java.util.logging.Logger
 
 abstract class AbstractReactiveKafkaConsumer<T : Any>(
     private val clazz: Class<T>
 ) : InitializingBean, DisposableBean {
+
+    companion object {
+        private val dispatcher = Executors.newFixedThreadPool(4).asCoroutineDispatcher()
+    }
 
     private val logger = Logger.getLogger(this::class.simpleName)
 
@@ -66,18 +73,20 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun <T> consume(): Job = GlobalScope.launch(exceptionHandler) {
-        receiver
-            .receiveAutoAck()
-            .doOnNext { received ->
-                logger.info(
-                    """
+        withContext(dispatcher) {
+            receiver
+                .receiveAutoAck()
+                .doOnNext { received ->
+                    logger.info(
+                        """
                         |${this@AbstractReactiveKafkaConsumer::class.simpleName} received: 
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
-                )
-            }
-            .doOnError { throwable -> launch { errorHandler(throwable) } }
-            .subscribe { response -> launch { accept(response) } }
+                    )
+                }
+                .doOnError { throwable -> launch { errorHandler(throwable) } }
+                .subscribe { response -> launch { accept(response) } }
+        }
     }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->

@@ -2,6 +2,8 @@ package com.kafka.example.producer
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomSerializer
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -14,9 +16,14 @@ import reactor.core.Disposable
 import reactor.kafka.sender.SenderOptions
 import reactor.kafka.sender.SenderResult
 import java.util.UUID
+import java.util.concurrent.Executors
 import java.util.logging.Logger
 
 abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, DisposableBean {
+
+    companion object {
+        private val dispatcher = Executors.newFixedThreadPool(4).asCoroutineDispatcher()
+    }
 
     private val logger = Logger.getLogger(this::class.simpleName)
 
@@ -65,5 +72,9 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
             .doOnNext { senderResult -> launch { successHandler(senderResult) } }
             .doOnError { throwable -> launch { errorHandler(throwable) } }
             .subscribe()
+    }
+
+    private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+        logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")
     }
 }
