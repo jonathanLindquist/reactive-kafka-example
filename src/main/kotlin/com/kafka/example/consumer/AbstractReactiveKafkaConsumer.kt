@@ -2,10 +2,10 @@ package com.kafka.example.consumer
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomDeserializer
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -65,7 +65,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
         logger.severe("Error: ${throwable.message}")
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun <T> consume(): Job = GlobalScope.launch {
+    private fun <T> consume(): Job = GlobalScope.launch(exceptionHandler) {
         receiver
             .receiveAutoAck()
             .doOnNext { received ->
@@ -76,7 +76,11 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                         |offset=${received.offset()}""".trimMargin()
                 )
             }
-            .doOnError { throwable -> async { errorHandler(throwable) } }
-            .subscribe { response -> async { accept(response) } }
+            .doOnError { throwable -> launch { errorHandler(throwable) } }
+            .subscribe { response -> launch { accept(response) } }
+    }
+
+    private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+        logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")
     }
 }
