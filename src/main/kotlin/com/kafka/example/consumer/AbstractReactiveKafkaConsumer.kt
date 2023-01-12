@@ -3,12 +3,10 @@ package com.kafka.example.consumer
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomDeserializer
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.DisposableBean
@@ -71,22 +69,19 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
     open suspend fun errorHandler(throwable: Throwable) =
         logger.severe("Error: ${throwable.message}")
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun <T> consume(): Job = GlobalScope.launch(exceptionHandler) {
-        withContext(dispatcher) {
-            receiver
-                .receiveAutoAck()
-                .doOnNext { received ->
-                    logger.info(
-                        """
+    private fun <T> consume(): Job = CoroutineScope(dispatcher).launch(exceptionHandler) {
+        receiver
+            .receiveAutoAck()
+            .doOnNext { received ->
+                logger.info(
+                    """
                         |${this@AbstractReactiveKafkaConsumer::class.simpleName} received: 
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
-                    )
-                }
-                .doOnError { throwable -> launch { errorHandler(throwable) } }
-                .subscribe { response -> launch { accept(response) } }
-        }
+                )
+            }
+            .doOnError { throwable -> launch { errorHandler(throwable) } }
+            .subscribe { response -> launch { accept(response) } }
     }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->

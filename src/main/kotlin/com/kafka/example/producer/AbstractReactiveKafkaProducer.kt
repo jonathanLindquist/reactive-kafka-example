@@ -3,8 +3,8 @@ package com.kafka.example.producer
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kafka.example.CustomSerializer
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -65,9 +65,9 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         logger.severe("Error sending item: ${throwable.message}")
     }
 
-    open suspend fun send(dto: T): Disposable = coroutineScope {
+    open suspend fun send(dto: T): Disposable = CoroutineScope(dispatcher).run {
         logger.info("Sending message: ${dto::class.simpleName}")
-        return@coroutineScope producer
+        return producer
             .send(topic, generateKey(), dto)
             .doOnNext { senderResult -> launch { successHandler(senderResult) } }
             .doOnError { throwable -> launch { errorHandler(throwable) } }
