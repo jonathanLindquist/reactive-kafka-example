@@ -16,7 +16,9 @@ object KafkaServerTestProvider {
     private val logger = Logger.getLogger(this::class.simpleName)
 
     @Container
-    val KAFKA_CONTAINER: KafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"))
+    val KAFKA_CONTAINER: KafkaContainer = KafkaContainer(
+        DockerImageName.parse("confluentinc/cp-kafka:latest")
+    )
 
     class KafkaServerInitializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
         override fun initialize(applicationContext: ConfigurableApplicationContext) {

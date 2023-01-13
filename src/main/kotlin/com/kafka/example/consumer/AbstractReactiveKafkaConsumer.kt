@@ -36,6 +36,9 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
     @Value("\${spring.kafka.consumer.auto-offset-reset}")
     private lateinit var autoOffsetReset: String
 
+    @Value("\${spring.kafka.consumer.commit-batch-size:10}")
+    private lateinit var commitBatchSize: Number
+
     lateinit var receiver: ReactiveKafkaConsumerTemplate<String, T>
 
     lateinit var disposable: Job
@@ -45,6 +48,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
             ReceiverOptions.create<String?, T>(kafkaConsumerProperties())
                 .withKeyDeserializer(StringDeserializer())
                 .withValueDeserializer(CustomDeserializer(jacksonObjectMapper(), clazz))
+                .commitBatchSize(commitBatchSize.toInt())
                 .subscription(topics)
         )
         disposable = this.consume<T>()
@@ -63,15 +67,21 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
             Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
         )
 
-    open suspend fun <T : Any> accept(dto: T) =
-        logger.info("Found item: ${dto::class.simpleName}")
+    open suspend fun <T : Any> accept(dto: T): Boolean {
+        return try {
+            logger.info("Found item: ${dto::class.simpleName}")
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     open suspend fun errorHandler(throwable: Throwable) =
         logger.severe("Error: ${throwable.message}")
 
     private fun <T> consume(): Job = CoroutineScope(dispatcher).launch(exceptionHandler) {
         receiver
-            .receiveAutoAck()
+            .receive()
             .doOnNext { received ->
                 logger.info(
                     """
@@ -80,8 +90,16 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                         |offset=${received.offset()}""".trimMargin()
                 )
             }
-            .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
-            .subscribe{ response -> CoroutineScope(dispatcher).launch { accept(response) } }
+            .doOnError { throwable ->
+                CoroutineScope(dispatcher).launch {
+                    errorHandler(throwable)
+                }
+            }
+            .subscribe { response ->
+                CoroutineScope(dispatcher).launch {
+                    if (accept(response)) response.receiverOffset().acknowledge()
+                }
+            }
     }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->

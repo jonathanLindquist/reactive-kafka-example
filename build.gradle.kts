@@ -1,3 +1,5 @@
+
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -30,9 +32,14 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
+	testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
 	testImplementation("org.testcontainers:testcontainers:1.17.6")
 	testImplementation("org.testcontainers:junit-jupiter:1.17.6")
 	testImplementation("org.testcontainers:kafka:1.17.6")
+
+	testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.9.2")
+	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+	testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.2")
 }
 
 tasks.withType<KotlinCompile> {
@@ -44,4 +51,23 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	testLogging {
+		events(
+			TestLogEvent.STANDARD_OUT,
+			TestLogEvent.STARTED,
+			TestLogEvent.PASSED,
+			TestLogEvent.SKIPPED,
+			TestLogEvent.FAILED
+		)
+	}
+}
+
+sourceSets {
+	main {
+		java.srcDirs("/src/main/kotlin")
+	}
+	test {
+		java.srcDirs("/src/test/kotlin")
+
+	}
 }

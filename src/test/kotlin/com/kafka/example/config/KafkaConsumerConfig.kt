@@ -13,8 +13,10 @@ class KafkaConsumerConfig {
 
         override val topics = listOf("example-reactive-topic")
 
-        override suspend fun <T : Any> accept(dto: T) =
+        override suspend fun <T : Any> accept(dto: T): Boolean {
             logger.info("overridden accept method: ${this::class.simpleName}")
+            return true
+        }
     }
 
     @Bean
