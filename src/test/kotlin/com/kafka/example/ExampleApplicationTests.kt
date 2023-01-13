@@ -17,28 +17,48 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @ContextConfiguration(
-	initializers = [KafkaServerTestProvider.KafkaServerInitializer::class],
-	classes = [ExampleApplication::class, KafkaConsumerConfig::class, KafkaProducerConfig::class]
+    initializers = [KafkaServerTestProvider.KafkaServerInitializer::class],
+    classes = [ExampleApplication::class, KafkaConsumerConfig::class, KafkaProducerConfig::class]
 )
 class ExampleApplicationTests {
 
-	@Autowired
-	lateinit var baseDTOProducer: KafkaProducerConfig.BaseDTOProducer
+    @Autowired
+    lateinit var baseDTOProducer: KafkaProducerConfig.BaseDTOProducer
 
-	@Test
-	fun `producer sends & receiver consumes`(): Unit = runBlocking {
-		val baseDto = BaseDTO(
-			item = "thing",
-			amount = 3
-		)
+    @Test
+    fun `producer sends & receiver consumes`(): Unit = runBlocking {
+        CoroutineScope(Dispatchers.IO).launch {
+            baseDTOProducer.send(
+                BaseDTO(
+                    item = "first",
+                    amount = 1
+                )
+            )
+        }
 
-		CoroutineScope(Dispatchers.IO).launch {
-			baseDTOProducer.send(baseDto)
-		}
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(1000L)
+            baseDTOProducer.send(
+                BaseDTO(
+                    item = "second",
+                    amount = 2
+                )
+            )
+        }
 
-		// wait for the consumer to receive, can be verified in the log output
-		launch {
-			delay(5000)
-		}.join()
-	}
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(1000L)
+            baseDTOProducer.send(
+                BaseDTO(
+                    item = "third",
+                    amount = 3
+                )
+            )
+        }
+
+        // wait for the consumer to receive, can be verified in the log output
+        launch {
+            delay(5000)
+        }.join()
+    }
 }
