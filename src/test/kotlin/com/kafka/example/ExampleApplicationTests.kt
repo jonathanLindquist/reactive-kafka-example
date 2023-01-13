@@ -36,6 +36,7 @@ class ExampleApplicationTests {
 			baseDTOProducer.send(baseDto)
 		}
 
+		// wait for the consumer to receive, can be verified in the log output
 		launch {
 			delay(5000)
 		}.join()
