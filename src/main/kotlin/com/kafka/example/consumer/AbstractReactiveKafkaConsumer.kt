@@ -79,28 +79,29 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
     open suspend fun errorHandler(throwable: Throwable) =
         logger.severe("Error: ${throwable.message}")
 
-    private fun <T> consume(): Job = CoroutineScope(dispatcher).launch(exceptionHandler) {
-        receiver
-            .receive()
-            .doOnNext { received ->
-                logger.info(
-                    """
+    private fun <T> consume(): Job =
+        CoroutineScope(dispatcher).launch(exceptionHandler) {
+            receiver
+                .receive()
+                .doOnNext { received ->
+                    logger.info(
+                        """
                         |${this@AbstractReactiveKafkaConsumer::class.simpleName} received:
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
-                )
-            }
-            .doOnError { throwable ->
-                CoroutineScope(dispatcher).launch {
-                    errorHandler(throwable)
+                    )
                 }
-            }
-            .subscribe { response ->
-                CoroutineScope(dispatcher).launch {
-                    if (accept(response)) response.receiverOffset().acknowledge()
+                .doOnError { throwable ->
+                    CoroutineScope(dispatcher).launch {
+                        errorHandler(throwable)
+                    }
                 }
-            }
-    }
+                .subscribe { response ->
+                    CoroutineScope(dispatcher).launch {
+                        if (accept(response)) response.receiverOffset().acknowledge()
+                    }
+                }
+        }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")

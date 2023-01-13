@@ -67,14 +67,15 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         logger.severe("Error sending item: ${throwable.message}")
     }
 
-    open suspend fun send(dto: T): Disposable = CoroutineScope(dispatcher).run {
-        logger.info("Sending message: ${dto::class.simpleName}")
-        return producer
-            .send(topic, classKey(), dto)
-            .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
-            .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
-            .subscribe()
-    }
+    open suspend fun send(dto: T): Disposable =
+        CoroutineScope(dispatcher).run {
+            logger.info("Sending message: ${dto::class.simpleName}")
+            return producer
+                .send(topic, classKey(), dto)
+                .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
+                .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
+                .subscribe()
+        }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")
