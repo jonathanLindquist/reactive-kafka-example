@@ -5,6 +5,7 @@ import com.kafka.example.CustomSerializer
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -68,9 +69,9 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
     }
 
     open suspend fun send(dto: T): Disposable =
-        CoroutineScope(dispatcher).run {
+        coroutineScope {
             logger.info("Sending message: ${dto::class.simpleName}")
-            return producer
+            return@coroutineScope producer
                 .send(topic, classKey(), dto)
                 .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
                 .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
