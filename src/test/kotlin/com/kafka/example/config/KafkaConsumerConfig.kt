@@ -8,7 +8,7 @@ import java.util.logging.Logger
 
 @Configuration
 class KafkaConsumerConfig {
-    class BaseDTOConsumer: AbstractReactiveKafkaConsumer<BaseDTO>(BaseDTO::class.java) {
+    class BaseDTOConsumer : AbstractReactiveKafkaConsumer<BaseDTO>(BaseDTO::class.java) {
         private val logger = Logger.getLogger(this::class.simpleName)
 
         override val topics = listOf("example-reactive-topic")

@@ -9,7 +9,7 @@ import java.util.logging.Logger
 
 @Configuration
 class KafkaProducerConfig {
-    class BaseDTOProducer: AbstractReactiveKafkaProducer<BaseDTO>() {
+    class BaseDTOProducer : AbstractReactiveKafkaProducer<BaseDTO>() {
         private val logger = Logger.getLogger(this::class.simpleName)
 
         override val topic = "example-reactive-topic"

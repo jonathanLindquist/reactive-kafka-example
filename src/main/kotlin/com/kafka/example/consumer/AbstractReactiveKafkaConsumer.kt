@@ -45,11 +45,9 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
 
     override fun afterPropertiesSet() {
         receiver = ReactiveKafkaConsumerTemplate(
-            ReceiverOptions.create<String?, T>(kafkaConsumerProperties())
-                .withKeyDeserializer(StringDeserializer())
+            ReceiverOptions.create<String?, T>(kafkaConsumerProperties()).withKeyDeserializer(StringDeserializer())
                 .withValueDeserializer(CustomDeserializer(jacksonObjectMapper(), clazz))
-                .commitBatchSize(commitBatchSize.toInt())
-                .subscription(topics)
+                .commitBatchSize(commitBatchSize.toInt()).subscription(topics)
         )
         disposable = this.consume<T>()
     }
@@ -60,12 +58,11 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
 
     abstract val topics: List<String>
 
-    open fun kafkaConsumerProperties(): MutableMap<String, Any> =
-        mutableMapOf(
-            Pair(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
-            Pair(ConsumerConfig.GROUP_ID_CONFIG, groupId),
-            Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
-        )
+    open fun kafkaConsumerProperties(): MutableMap<String, Any> = mutableMapOf(
+        Pair(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
+        Pair(ConsumerConfig.GROUP_ID_CONFIG, groupId),
+        Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
+    )
 
     open suspend fun <T : Any> accept(dto: T): Boolean {
         return try {
@@ -76,32 +73,26 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
         }
     }
 
-    open suspend fun errorHandler(throwable: Throwable) =
-        logger.severe("Error: ${throwable.message}")
+    open suspend fun errorHandler(throwable: Throwable) = logger.severe("Error: ${throwable.message}")
 
-    private fun <T> consume(): Job =
-        CoroutineScope(dispatcher).launch(exceptionHandler) {
-            receiver
-                .receive()
-                .doOnNext { received ->
-                    logger.info(
-                        """
+    private fun <T> consume(): Job = CoroutineScope(dispatcher).launch(exceptionHandler) {
+        receiver.receive().doOnNext { received ->
+            logger.info(
+                """
                         |${this@AbstractReactiveKafkaConsumer::class.simpleName} received:
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
-                    )
-                }
-                .doOnError { throwable ->
-                    CoroutineScope(dispatcher).launch {
-                        errorHandler(throwable)
-                    }
-                }
-                .subscribe { response ->
-                    CoroutineScope(dispatcher).launch {
-                        if (accept(response)) response.receiverOffset().acknowledge()
-                    }
-                }
+            )
+        }.doOnError { throwable ->
+            CoroutineScope(dispatcher).launch {
+                errorHandler(throwable)
+            }
+        }.subscribe { response ->
+            CoroutineScope(dispatcher).launch {
+                if (accept(response)) response.receiverOffset().acknowledge()
+            }
         }
+    }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")

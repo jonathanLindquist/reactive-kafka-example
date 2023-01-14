@@ -51,7 +51,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
 
     abstract val topic: String
 
-    open fun classKey() = "${this::class.simpleName}-${uuid}"
+    open fun classKey() = "${this::class.simpleName}-$uuid"
 
     open fun kafkaProducerProperties(): MutableMap<String, Any> =
         mutableMapOf(
