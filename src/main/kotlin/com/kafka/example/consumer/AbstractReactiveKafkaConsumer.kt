@@ -14,6 +14,8 @@ import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
 import reactor.kafka.receiver.ReceiverOptions
+import reactor.util.retry.Retry
+import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.logging.Logger
 
@@ -64,7 +66,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
         Pair(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
     )
 
-    open suspend fun <T : Any> accept(dto: T): Boolean {
+    open suspend fun <T : Any> successHandler(dto: T): Boolean {
         return try {
             logger.info("Found item: ${dto::class.simpleName}")
             true
@@ -73,28 +75,43 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
         }
     }
 
-    open suspend fun errorHandler(throwable: Throwable) = logger.severe("Error: ${throwable.message}")
+    open suspend fun onErrorContinueHandler(throwable: Throwable) =
+        logger.warning("Warning, attempting to recover: ${throwable.message}")
+
+    open suspend fun onErrorHandler(throwable: Throwable) = logger.severe("Error: ${throwable.message}")
 
     private fun <T> consume(): Job =
         CoroutineScope(dispatcher).launch(exceptionHandler) {
-            receiver.receive().doOnNext { received ->
-                logger.info(
-                    """
+            receiver.receive()
+                .doOnNext { received ->
+                    logger.info(
+                        """
                         |${this@AbstractReactiveKafkaConsumer::class.simpleName} received:
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
+                    )
+                }.onErrorContinue { throwable, response ->
+                    // TODO: implement safe resumption
+                    CoroutineScope(dispatcher).launch {
+                        onErrorContinueHandler(throwable)
+                    }
+                }.doOnError { throwable ->
+                    // safe close-out handling
+                    CoroutineScope(dispatcher).launch {
+                        onErrorHandler(throwable)
+                    }
+                }.retryWhen(
+                    Retry.backoff(
+                        3,
+                        Duration.ofSeconds(2)
+                    ).transientErrors(true)
                 )
-            }.onErrorContinue { throwable, response ->
-                // TODO: implement safe resumption
-            }.doOnError { throwable ->
-                CoroutineScope(dispatcher).launch {
-                    errorHandler(throwable)
+                .repeat()
+                .subscribe { response ->
+                    CoroutineScope(dispatcher).launch {
+                        if (successHandler(response)) response.receiverOffset().acknowledge()
+                    }
                 }
-            }.subscribe { response ->
-                CoroutineScope(dispatcher).launch {
-                    if (accept(response)) response.receiverOffset().acknowledge()
-                }
-            }
         }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
