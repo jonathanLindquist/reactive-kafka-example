@@ -84,6 +84,8 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                         |key=${received.key()}
                         |offset=${received.offset()}""".trimMargin()
                 )
+            }.onErrorContinue { throwable, response ->
+                // TODO: implement safe resumption
             }.doOnError { throwable ->
                 CoroutineScope(dispatcher).launch {
                     errorHandler(throwable)
