@@ -105,8 +105,7 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                         3,
                         Duration.ofSeconds(2)
                     ).transientErrors(true)
-                )
-                .repeat()
+                ).repeat()
                 .subscribe { response ->
                     CoroutineScope(dispatcher).launch {
                         if (successHandler(response)) response.receiverOffset().acknowledge()
