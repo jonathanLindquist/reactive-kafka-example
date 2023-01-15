@@ -16,6 +16,7 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate
 import reactor.kafka.receiver.ReceiverOptions
 import reactor.util.retry.Retry
 import java.time.Duration
+import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import java.util.logging.Logger
 
@@ -51,11 +52,14 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
                 .withValueDeserializer(CustomDeserializer(jacksonObjectMapper(), clazz))
                 .commitBatchSize(commitBatchSize.toInt()).subscription(topics)
         )
+
         disposable = this.consume<T>()
     }
 
     override fun destroy() {
-        disposable.cancel()
+        disposable.cancel(
+            CancellationException("App shutting down, cancelling ${this::class.simpleName} job")
+        )
     }
 
     abstract val topics: List<String>
