@@ -14,7 +14,7 @@ class KafkaProducerConfig {
 
         override val topic = "example-reactive-topic"
 
-        override fun classKey() = "generated-key-${this::class.simpleName}-${this.uuid}"
+        override fun key() = "generated-key-${this::class.simpleName}-${this.uuid}"
 
         override suspend fun successHandler(senderResult: SenderResult<Void>) =
             logger.info("overridden success handler: ${this::class.simpleName}")

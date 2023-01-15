@@ -52,7 +52,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
 
     abstract val topic: String
 
-    open fun classKey() = "${this::class.simpleName}-$uuid"
+    open fun key() = "${this::class.simpleName}-$uuid"
 
     open fun kafkaProducerProperties(): MutableMap<String, Any> =
         mutableMapOf(
@@ -72,7 +72,7 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         coroutineScope {
             logger.info("Sending message: ${dto::class.simpleName}")
             return@coroutineScope producer
-                .send(topic, classKey(), dto)
+                .send(topic, key(), dto)
                 .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
                 .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
                 .subscribe()
