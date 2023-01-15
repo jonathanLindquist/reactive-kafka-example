@@ -87,14 +87,14 @@ abstract class AbstractReactiveKafkaConsumer<T : Any>(
     private fun <T> consume(): Job =
         CoroutineScope(dispatcher).launch(exceptionHandler) {
             receiver.receive()
-                .doOnNext { response ->
+                .doOnNext { received ->
                     logger.info(
                         """
-                        |${this@AbstractReactiveKafkaConsumer::class.simpleName} response:
-                        |key=${response.key()}
-                        |offset=${response.offset()}""".trimMargin()
+                        |${this@AbstractReactiveKafkaConsumer::class.simpleName} received:
+                        |key=${received.key()}
+                        |offset=${received.offset()}""".trimMargin()
                     )
-                    response.receiverOffset().acknowledge()
+                    received.receiverOffset().acknowledge()
                 }.onErrorContinue { throwable, response ->
                     // TODO: implement safe resumption, throw on DeadLetter queue
                     CoroutineScope(dispatcher).launch {
