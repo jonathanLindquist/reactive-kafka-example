@@ -5,7 +5,6 @@ import com.kafka.example.CustomSerializer
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -68,15 +67,14 @@ abstract class AbstractReactiveKafkaProducer<T : Any> : InitializingBean, Dispos
         logger.severe("Error sending item: ${throwable.message}")
     }
 
-    open suspend fun send(dto: T): Disposable =
-        coroutineScope {
-            logger.info("Sending message: ${dto::class.simpleName}")
-            return@coroutineScope producer
-                .send(topic, key(), dto)
-                .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
-                .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
-                .subscribe()
-        }
+    open suspend fun send(dto: T): Disposable {
+        logger.info("Sending message: ${dto::class.simpleName}")
+        return producer
+            .send(topic, key(), dto)
+            .doOnNext { senderResult -> CoroutineScope(dispatcher).launch { successHandler(senderResult) } }
+            .doOnError { throwable -> CoroutineScope(dispatcher).launch { errorHandler(throwable) } }
+            .subscribe()
+    }
 
     private val exceptionHandler: CoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         logger.severe("${this::class.simpleName} exception handler error: ${throwable.message} | Context: $coroutineContext")
